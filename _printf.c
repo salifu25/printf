@@ -1,66 +1,83 @@
+#include <unistd.h>
 #include "main.h"
-
-void print_buffer(char buffer[], int *buff_ind);
+#include <stdio.h>
 
 /**
- * _printf - Printf function
- * @format: format.
- * Return: Printed chars.
+ * buffer_print - print given buffer to stdout
+ * @buffer: buffer to print
+ * @nbytes: number of bytes to print
+ *
+ * Return: nbytes
  */
-int _printf(const char *format, ...)
+int buffer_print(char buffer[], unsigned int nbytes)
 {
-	int i, printed = 0, printed_chars = 0;
-	int flags, width, precision, size, buff_ind = 0;
-	va_list list;
-	char buffer[BUFF_SIZE];
-
-	if (format == NULL)
-		return (-1);
-
-	va_start(list, format);
-
-	for (i = 0; format && format[i] != '\0'; i++)
-	{
-		if (format[i] != '%')
-		{
-			buffer[buff_ind++] = format[i];
-			if (buff_ind == BUFF_SIZE)
-				print_buffer(buffer, &buff_ind);
-			/* write(1, &format[i], 1);*/
-			printed_chars++;
-		}
-		else
-		{
-			print_buffer(buffer, &buff_ind);
-			flags = get_flags(format, &i);
-			width = get_width(format, &i, list);
-			precision = get_precision(format, &i, list);
-			size = get_size(format, &i);
-			++i;
-			printed = handle_print(format, &i, list, buffer,
-				flags, width, precision, size);
-			if (printed == -1)
-				return (-1);
-			printed_chars += printed;
-		}
-	}
-
-	print_buffer(buffer, &buff_ind);
-
-	va_end(list);
-
-	return (printed_chars);
+	write(1, buffer, nbytes);
+	return (nbytes);
 }
 
 /**
- * print_buffer - Prints the contents of the buffer if it exist
- * @buffer: Array of chars
- * @buff_ind: Index at which to add next char, represents the length.
+ * buffer_add - adds a string to buffer
+ * @buffer: buffer to fill
+ * @str: str to add
+ * @buffer_pos: pointer to buffer first empty position
+ *
+ * Return: if buffer filled and emptyed return number of printed char
+ * else 0
  */
-void print_buffer(char buffer[], int *buff_ind)
+int buffer_add(char buffer[], char *str, unsigned int *buffer_pos)
 {
-	if (*buff_ind > 0)
-		write(1, &buffer[0], *buff_ind);
+	int i = 0;
+	unsigned int count = 0, pos = *buffer_pos, size = BUFFER_SIZE;
 
-	*buff_ind = 0;
+	while (str && str[i])
+	{
+		if (pos == size)
+		{
+			count += buffer_print(buffer, pos);
+			pos = 0;
+		}
+		buffer[pos++] = str[i++];
+	}
+	*buffer_pos = pos;
+	return (count);
+}
+
+/**
+ * _printf - produces output according to a format
+ * @format: character string
+ *
+ * Return: the number of characters printed excluding the null byte
+ * used to end output to strings
+ */
+int _printf(const char *format, ...)
+{
+	va_list ap;
+	unsigned int i = 0, buffer_pos = 0, count = 0;
+	char *res_str, *aux, buffer[BUFFER_SIZE];
+
+	if (!format || !format[0])
+		return (-1);
+	va_start(ap, format);
+	aux = malloc(sizeof(char) * 2);
+	while (format && format[i])
+	{
+		if (format[i] == '%')
+		{
+			res_str = treat_format(format, &i, ap);
+			count += buffer_add(buffer, res_str, &buffer_pos);
+			free(res_str);
+		}
+		else
+		{
+			aux[0] = format[i++];
+			aux[1] = '\0';
+			count += buffer_add(buffer, aux, &buffer_pos);
+		}
+	}
+	count += buffer_print(buffer, buffer_pos);
+	free(aux);
+	va_end(ap);
+	if (!count)
+		count = -1;
+	return (count);
 }
