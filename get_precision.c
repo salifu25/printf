@@ -1,41 +1,184 @@
+#include <stdlib.h>
 #include "main.h"
 
 /**
- * get_precision - Calculates the precision for printing
- * @format: Formatted string in which to print the arguments
- * @i: List of arguments to be printed.
- * @list: list of arguments.
+ * get_flags - extract flags after % into a string
+ * @s: string to extract from
+ * @pos: position to start searching from (will be modified to mark
+ * end of searching position)
  *
- * Return: Precision.
+ * Return: string containing all the flags found
  */
-int get_precision(const char *format, int *i, va_list list)
+char *get_flags(const char *s, unsigned int *pos)
 {
-	int curr_i = *i + 1;
-	int precision = -1;
+	char *flags_arr = "-+ 0#";
+	char *res_flags = NULL;
+	unsigned int i, found;
+	size_t size = 1;
 
-	if (format[curr_i] != '.')
-		return (precision);
+	do {
+		found = 0;
+		i = 0;
+		while (flags_arr[i] && !found)
+		{
+			if (s[(*pos) + 1] == flags_arr[i])
+			{
+				size += sizeof(char);
+				res_flags = _realloc(res_flags, size - sizeof(char), size);
+				if (res_flags == NULL)
+				{
+					free(res_flags);
+					return (NULL);
+				}
+				res_flags[size - 2] = s[(*pos) + 1];
+				found = 1;
+				(*pos)++;
+			}
+			i++;
+		}
+	} while (found);
+	if (res_flags != NULL)
+		res_flags[size - 1] = '\0';
+	return (res_flags);
+}
 
-	precision = 0;
+/**
+ * get_width - extract width field after %
+ * @s: string to extract from
+ * @pos: position to start searching from (will be modified to mark
+ * end of searching position)
+ *
+ * Return: width integer or 0 for * or -1 if not found
+ */
+int get_width(const char *s, unsigned int *pos)
+{
+	int res_width = -1, found;
 
-	for (curr_i += 1; format[curr_i] != '\0'; curr_i++)
+	if (s[(*pos) + 1] == '0')
+		return (-1);
+	if (s[(*pos) + 1] == '*')
 	{
-		if (is_digit(format[curr_i]))
-		{
-			precision *= 10;
-			precision += format[curr_i] - '0';
-		}
-		else if (format[curr_i] == '*')
-		{
-			curr_i++;
-			precision = va_arg(list, int);
-			break;
-		}
-		else
-			break;
+		(*pos)++;
+		return (0);
 	}
+	do {
+		found = 0;
+		if (s[(*pos) + 1] >= '0' && s[(*pos) + 1] <= '9')
+		{
+			if (res_width < 0)
+				res_width = s[(*pos) + 1] - '0';
+			else
+			{
+				res_width *= 10;
+				res_width += s[(*pos) + 1] - '0';
+			}
+			found = 1;
+			(*pos)++;
+		}
+	} while (found);
+	return (res_width);
+}
 
-	*i = curr_i - 1;
+/**
+ * get_precision - extract precision field that starts with '.' and after %
+ * @s: string to extract from
+ * @pos: position to start extractong from (will be modified to mark
+ * end of search position)
+ *
+ * Return: precision integer or -1 for '.*' or -2 if not found
+ */
+int get_precision(const char *s, unsigned int *pos)
+{
+	int res_prec = 0, found;
 
-	return (precision);
+	if (s[(*pos) + 1] != '.')
+		return (-2);
+	(*pos)++;
+	if (s[(*pos) + 1] == '*')
+	{
+		(*pos)++;
+		return (-1);
+	}
+	do {
+		found = 0;
+		if (s[(*pos) + 1] >= '0' && s[(*pos) + 1] <= '9')
+		{
+			if (res_prec == 0 && s[(*pos) + 1] != '0')
+				res_prec = s[(*pos) + 1] - '0';
+			else if (res_prec > 0)
+			{
+				res_prec *= 10;
+				res_prec += s[(*pos) + 1] - '0';
+			}
+			found = 1;
+			(*pos)++;
+		}
+	} while (found);
+	return (res_prec);
+}
+
+/**
+ * get_length - extract length field after %
+ * @s: string to extract from
+ * @pos: position to start extractong from (will be modified to mark
+ * end of search position)
+ *
+ * Return: string of 'l's and 'h's or NULL if not found
+ */
+char *get_length(const char *s, unsigned int *pos)
+{
+	char *length_arr = "hl";
+	char *res_length = NULL;
+	int i, found;
+	size_t size = 1;
+
+	do {
+		found = 0;
+		i = 0;
+		while (length_arr[i] && !found)
+		{
+			if (s[(*pos) + 1] == length_arr[i])
+			{
+				size += sizeof(char);
+				res_length = _realloc(res_length, size - sizeof(char), size);
+				if (res_length == NULL)
+				{
+					free(res_length);
+					return (NULL);
+				}
+				res_length[size - 2] = s[(*pos) + 1];
+				found = 1;
+				(*pos)++;
+			}
+			i++;
+		}
+	} while (found);
+	if (res_length != NULL)
+		res_length[size - 1] = '\0';
+	return (res_length);
+}
+
+
+/**
+ * get_specifier - extract specifier field after %
+ * @s: string to extract from
+ * @pos: position to start extractong from (will be modified to mark
+ * end of search position)
+ *
+ * Return: specifier char or NULL if not found
+ */
+char get_specifier(const char *s, unsigned int *pos)
+{
+	char *spec_arr = "cs%dibuoxXSprR";
+	int i;
+
+	for (i = 0; spec_arr[i]; i++)
+	{
+		if (spec_arr[i] == s[(*pos) + 1])
+		{
+			(*pos)++;
+			return (spec_arr[i]);
+		}
+	}
+	return (0);
 }
