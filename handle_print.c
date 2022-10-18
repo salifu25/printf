@@ -1,49 +1,74 @@
-#include "main.h"
-/**
- * handle_print - Prints an argument based on its type
- * @fmt: Formatted string in which to print the arguments.
- * @list: List of arguments to be printed.
- * @ind: ind.
- * @buffer: Buffer array to handle print.
- * @flags: Calculates active flags
- * @width: get width.
- * @precision: Precision specification
- * @size: Size specifier
- * Return: 1 or 2;
- */
-int handle_print(const char *fmt, int *ind, va_list list, char buffer[],
-	int flags, int width, int precision, int size)
-{
-	int i, unknow_len = 0, printed_chars = -1;
-	fmt_t fmt_types[] = {
-		{'c', print_char}, {'s', print_string}, {'%', print_percent},
-		{'i', print_int}, {'d', print_int}, {'b', print_binary},
-		{'u', print_unsigned}, {'o', print_octal}, {'x', print_hexadecimal},
-		{'X', print_hexa_upper}, {'p', print_pointer}, {'S', print_non_printable},
-		{'r', print_reverse}, {'R', print_rot13string}, {'\0', NULL}
-	};
-	for (i = 0; fmt_types[i].fmt != '\0'; i++)
-		if (fmt[*ind] == fmt_types[i].fmt)
-			return (fmt_types[i].fn(list, buffer, flags, width, precision, size));
+#include "holberton.h"
 
-	if (fmt_types[i].fmt == '\0')
+/**
+ * treat_flags - treat flags + and ' '
+ * @flags: flags string
+ * @buffer: to store result
+ * @size: size of buffer
+ *
+ */
+void treat_flags(char *flags, char *buffer, int *size)
+{
+	char sign = buffer[(*size) - 1];
+	int i;
+
+	if (flags && sign != '-')
 	{
-		if (fmt[*ind] == '\0')
-			return (-1);
-		unknow_len += write(1, "%%", 1);
-		if (fmt[*ind - 1] == ' ')
-			unknow_len += write(1, " ", 1);
-		else if (width)
+		for (i = 0; flags[i]; i++)
 		{
-			--(*ind);
-			while (fmt[*ind] != ' ' && fmt[*ind] != '%')
-				--(*ind);
-			if (fmt[*ind] == ' ')
-				--(*ind);
-			return (1);
+			if (flags[i] == ' ')
+				buffer[*size] = ' ';
 		}
-		unknow_len += write(1, &fmt[*ind], 1);
-		return (unknow_len);
+		for (i = 0; flags[i]; i++)
+		{
+			if (flags[i] == '+')
+				buffer[*size] = '+';
+		}
+		if (buffer[*size] == '+' || buffer[*size] == ' ')
+			(*size)++;
 	}
-	return (printed_chars);
+}
+
+/**
+ * print_int - print integer
+ * @ap:va_list pointer for integer handle %i
+ * @modif:struct modifier containig modifier fields
+ * Return:int length
+ */
+char *print_int(modifier_t *modif, va_list ap)
+{
+	unsigned int x;
+	int i = 0, j = 0, n;
+	char buffer[10], *res_str;
+
+	if (!ap && !modif)
+		return (NULL);
+	n = va_arg(ap, int);
+	if (n == 0)
+	{
+		j = 1;
+		res_str = malloc(sizeof(char) * 2);
+		res_str[0] = '0';
+	}
+	else
+	{
+		if (n < 0)
+			x = -n;
+		else
+			x = n;
+		while (x)
+		{
+			buffer[i++] = (x % 10) + '0';
+			x = x / 10;
+		}
+		if (n < 0)
+			buffer[i++] = '-';
+		treat_flags(modif->flags, buffer, &i);
+		res_str = malloc(sizeof(char) * i);
+		i--;
+		while (i >= 0)
+			res_str[j++] = buffer[i--];
+	}
+	res_str[j] = '\0';
+	return (res_str);
 }
