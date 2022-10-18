@@ -1,36 +1,31 @@
 #include "main.h"
-
 /**
- * get_width - Calculates the width for printing
- * @format: Formatted string in which to print the arguments.
- * @i: List of arguments to be printed.
- * @list: list of arguments.
- *
- * Return: width.
+ * print_char - print a single char
+ * @ap: va_list pointer containg a char
+ * @modif: struct modifier containig modifier fields
+ * Return: one char count
  */
-int get_width(const char *format, int *i, va_list list)
+char *print_char (modifier_t *modif, va_list ap)
 {
-	int curr_i;
-	int width = 0;
+	char *ch;
+	char c;
 
-	for (curr_i = *i + 1; format[curr_i] != '\0'; curr_i++)
+	if (!ap || !modif)
+		return (0);
+	c = va_arg(ap, int);
+	ch = malloc(2);
+	if (!ch)
 	{
-		if (is_digit(format[curr_i]))
-		{
-			width *= 10;
-			width += format[curr_i] - '0';
-		}
-		else if (format[curr_i] == '*')
-		{
-			curr_i++;
-			width = va_arg(list, int);
-			break;
-		}
-		else
-			break;
+		return (NULL);
 	}
-
-	*i = curr_i - 1;
-
-	return (width);
+	if (c)
+	{
+		ch[0] = c;
+	}
+	else
+	{
+		ch[0] = '\0';
+	}
+	ch[1] = '\0';
+	return (ch);
 }
