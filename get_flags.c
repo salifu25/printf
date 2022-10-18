@@ -1,34 +1,47 @@
 #include "main.h"
+#include <stdio.h>
 
 /**
- * get_flags - Calculates active flags
- * @format: Formatted string in which to print the arguments
- * @i: take a parameter.
- * Return: Flags:
+ * free_modifier - free struct modifier
+ * @modif: pointer to struct modifier to free
+ *
  */
-int get_flags(const char *format, int *i)
+void free_modifier(modifier_t *modif)
 {
-	/* - + 0 # ' ' */
-	/* 1 2 4 8  16 */
-	int j, curr_i;
-	int flags = 0;
-	const char FLAGS_CH[] = {'-', '+', '0', '#', ' ', '\0'};
-	const int FLAGS_ARR[] = {F_MINUS, F_PLUS, F_ZERO, F_HASH, F_SPACE, 0};
+	free(modif->flags);
+	free(modif->length);
+	free(modif);
+}
 
-	for (curr_i = *i + 1; format[curr_i] != '\0'; curr_i++)
+/**
+ * get_modifier - extracts modifiers into a new struct modifier
+ * @s: string to extract from
+ * @pos: position to start from (will be modifed to
+ * the position of last character checked)
+ *
+ * Return: pointer on new struct modifier or NULL if specifier not found
+ */
+modifier_t *get_modifier(const char *s, unsigned int *pos)
+{
+	modifier_t *modif;
+	unsigned int i = *pos;
+
+	if (s[i + 1] == '\0')
+		return (NULL);
+	modif = malloc(sizeof(modifier_t));
+	if (modif == NULL)
+		return (NULL);
+	modif->flags = get_flags(s, &i);
+	modif->width = get_width(s, &i);
+	modif->precision = get_precision(s, &i);
+	modif->length = get_length(s, &i);
+	modif->specifier = get_specifier(s, &i);
+
+	if (!modif->specifier)
 	{
-		for (j = 0; FLAGS_CH[j] != '\0'; j++)
-			if (format[curr_i] == FLAGS_CH[j])
-			{
-				flags |= FLAGS_ARR[j];
-				break;
-			}
-
-		if (FLAGS_CH[j] == 0)
-			break;
+		free_modifier(modif);
+		return (NULL);
 	}
-
-	*i = curr_i - 1;
-
-	return (flags);
+	(*pos) = i;
+	return (modif);
 }
